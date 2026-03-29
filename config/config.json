@@ -1,0 +1,186 @@
+{
+  "system": {
+    "version": "1.0.0",
+    "name": "APEX Trading System",
+    "mode": "paper",
+    "log_level": "INFO",
+    "data_cache_hours": 24,
+    "state_save_interval_seconds": 30
+  },
+  "capital": {
+    "initial": 100000,
+    "current": 100000,
+    "currency": "USD"
+  },
+  "risk": {
+    "risk_per_trade_pct": 0.0025,
+    "max_concurrent_positions": 8,
+    "max_trades_per_day": 30,
+    "target_trades_per_day": 20,
+    "max_daily_loss_pct": 0.03,
+    "max_weekly_loss_pct": 0.05,
+    "max_drawdown_pct": 0.10,
+    "consecutive_loss_pause": 5,
+    "consecutive_loss_cool_down_minutes": 30,
+    "aggregate_risk_cap_pct": 0.02,
+    "sector_max_concurrent": 3,
+    "correlation_threshold": 0.7,
+    "net_exposure_limit_pct": 0.05,
+    "overnight_max_positions": 2,
+    "swing_capital_allocation_pct": 0.10,
+    "kelly_fraction": 0.25
+  },
+  "execution": {
+    "max_spread_pct": 0.001,
+    "min_volume_multiplier": 2.0,
+    "order_retry_max": 3,
+    "order_timeout_seconds": 30,
+    "latency_candles": 1,
+    "fees_per_trade_pct": 0.0005,
+    "slippage_estimate_pct": 0.0003,
+    "cost_multiplier_min": 2.0
+  },
+  "signals": {
+    "min_confidence_score": 0.75,
+    "high_confidence_score": 0.85,
+    "ultra_confidence_score": 0.90,
+    "min_overall_score": 0.70,
+    "slot_pressure_score": 0.80,
+    "score_weights": {
+      "momentum": 0.30,
+      "volume": 0.10,
+      "sentiment": 0.15,
+      "macro": 0.10,
+      "execution_quality": 0.10,
+      "multi_timeframe": 0.15,
+      "model_confidence": 0.10
+    }
+  },
+  "profit_targets": {
+    "daily_protect_mode_pct": 0.005,
+    "daily_stretch_target_pct": 0.01,
+    "tier1_take_profit_r": 1.0,
+    "tier1_close_pct": 0.50,
+    "tier2_take_profit_r": 2.0,
+    "tier3_trailing_atr_mult": 1.5,
+    "min_rr_ratio": 1.5,
+    "standard_rr_ratio": 2.0,
+    "high_conf_rr_ratio": 3.0,
+    "sl_atr_multiplier": 1.5,
+    "overnight_sl_atr_multiplier": 2.0,
+    "cold_start_trades": 3,
+    "cold_start_size_pct": 0.75,
+    "hot_streak_threshold": 5,
+    "hot_streak_size_boost_pct": 1.25,
+    "position_increase_cap_pct": 1.05
+  },
+  "compounding": {
+    "enabled": true,
+    "daily_max_increase_pct": 0.05,
+    "milestone_withdrawal_pct": 0.20,
+    "milestone_growth_pct": 0.10
+  },
+  "market_hours": {
+    "us_open": "09:30",
+    "us_close": "16:00",
+    "skip_open_minutes": 15,
+    "skip_close_minutes": 15,
+    "prime_morning_end": "11:30",
+    "prime_afternoon_start": "13:00",
+    "prime_afternoon_end": "15:45",
+    "friday_cutoff": "15:00",
+    "timezone": "America/New_York"
+  },
+  "timeframes": ["5m", "15m", "1h", "1d"],
+  "primary_timeframe": "5m",
+  "indicators": {
+    "ema_periods": [9, 20, 50, 200],
+    "rsi_period": 14,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "atr_period": 14,
+    "bb_period": 20,
+    "bb_std": 2,
+    "volume_avg_period": 20,
+    "adx_period": 14,
+    "adx_trending_threshold": 25,
+    "adx_ranging_threshold": 20,
+    "correlation_window_days": 30,
+    "equity_curve_window_trades": 50
+  },
+  "regime": {
+    "trending_adx": 25,
+    "ranging_adx": 20,
+    "high_vix_threshold": 30,
+    "panic_vix_threshold": 40,
+    "abnormal_move_sigma": 3.0
+  },
+  "ml": {
+    "models": ["lightgbm", "xgboost", "randomforest"],
+    "ensemble_agreement_min": 2,
+    "calibration_method": "isotonic",
+    "recalibration_days": 30,
+    "retrain_interval_days": 14,
+    "walk_forward_windows": 5,
+    "purge_gap_candles": 20,
+    "holdout_months": 3,
+    "feature_seeds": [42, 123, 456, 789, 1337],
+    "min_leaf_samples": 50,
+    "max_tree_depth": 6,
+    "label_tp_multiplier": 2.0,
+    "label_sl_multiplier": 1.0,
+    "label_horizon_candles": 12,
+    "drift_window_trades": 30,
+    "drift_win_rate_threshold": 0.10,
+    "drift_level2_reduce_pct": 0.50
+  },
+  "data": {
+    "training_years": 2,
+    "warmup_candles": 200,
+    "max_gap_fill_days": 3,
+    "parallel_download_batch": 10,
+    "cache_dir": "ml-service/data/cache",
+    "min_daily_volume_usd": 10000000,
+    "min_market_cap_usd": 5000000000
+  },
+  "tickers": {
+    "us_large_cap": ["AAPL","MSFT","GOOGL","AMZN","TSLA","NVDA","META","JPM","V","JNJ","WMT","PG","UNH","HD","MA","DIS","NFLX","PYPL","CRM","AMD"],
+    "etfs": ["SPY","QQQ","IWM","DIA","XLF","XLE","XLK","GLD","SLV","TLT"],
+    "crypto": ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD"],
+    "macro_signals": ["^VIX","^TNX","DX-Y.NYB","^GSPC"],
+    "benchmark": "SPY"
+  },
+  "sentiment": {
+    "staleness_hours": 4,
+    "vix_fear_threshold": 30,
+    "vix_panic_threshold": 40,
+    "bullish_keywords": ["surge","rally","breakout","beat","upgrade","buy","strong","growth","record","bull"],
+    "bearish_keywords": ["crash","decline","fall","miss","downgrade","sell","weak","loss","default","bear"]
+  },
+  "strategies": {
+    "momentum": {
+      "name": "Momentum Breakout",
+      "adx_min": 25,
+      "allocation_pct": 0.40,
+      "daily_trades": 8
+    },
+    "mean_reversion": {
+      "name": "Mean Reversion",
+      "adx_max": 20,
+      "allocation_pct": 0.30,
+      "daily_trades": 6
+    },
+    "scalp": {
+      "name": "Scalp Micro-Momentum",
+      "allocation_pct": 0.30,
+      "daily_trades": 6,
+      "target_move_pct": 0.003,
+      "stop_pct": 0.0015
+    }
+  },
+  "ports": {
+    "backend": 3001,
+    "ml_service": 8001
+  }
+}

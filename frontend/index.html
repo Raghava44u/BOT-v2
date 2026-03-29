@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — AI Trading System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <div class="brand">
+    <div class="brand-mark">▲</div>
+    <div class="brand-text">
+      <span class="brand-name">APEX</span>
+      <span class="brand-sub">AI TRADING SYSTEM</span>
+    </div>
+  </div>
+  <div class="status-cluster">
+    <div class="status-pill" id="ws-status"><span class="dot"></span>CONNECTING</div>
+    <div class="status-pill" id="ml-status"><span class="dot dot-warn"></span>ML OFFLINE</div>
+    <div class="status-pill mode-pill" id="mode-pill">PAPER MODE</div>
+  </div>
+  <nav class="header-actions">
+    <button class="btn-icon" id="btn-download">⬇ DOWNLOAD DATA</button>
+    <button class="btn-icon" id="btn-train">⚙ RETRAIN</button>
+    <button class="btn-icon" id="btn-backtest">📊 BACKTEST</button>
+    <button class="btn-primary" id="btn-toggle-trading">▶ START TRADING</button>
+    <button class="btn-danger" id="btn-close-all">✕ CLOSE ALL</button>
+  </nav>
+</header>
+
+<!-- CIRCUIT BREAKER BANNER -->
+<div class="circuit-banner hidden" id="circuit-banner">
+  <span class="cb-icon">⚡</span>
+  <strong>CIRCUIT BREAKER:</strong>
+  <span id="circuit-reason">Trading halted</span>
+  <button class="btn-reset" id="btn-reset-cb">RESET &amp; RESUME</button>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="global-progress hidden" id="global-progress">
+  <div class="gp-bar" id="gp-bar" style="width:0%"></div>
+  <span id="gp-label">Working…</span>
+</div>
+
+<main class="dashboard-grid">
+
+  <!-- ── METRICS BAR ────────────────────────────────────────── -->
+  <section class="metrics-bar">
+    <div class="metric-card">
+      <div class="metric-label">PORTFOLIO</div>
+      <div class="metric-value" id="m-equity">$100,000</div>
+      <div class="metric-delta neutral" id="m-daily-pnl">+$0.00 today</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">WIN RATE</div>
+      <div class="metric-value" id="m-win-rate">—</div>
+      <div class="metric-delta" id="m-rolling-wr">rolling 30: —</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">SHARPE RATIO</div>
+      <div class="metric-value" id="m-sharpe">—</div>
+      <div class="metric-delta">annualized</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">DRAWDOWN</div>
+      <div class="metric-value" id="m-drawdown">0.00%</div>
+      <div class="metric-delta">peak to trough</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">TRADES TODAY</div>
+      <div class="metric-value" id="m-trades-today">0 <span class="target">/ 20</span></div>
+      <div class="metric-delta" id="m-open-pos">0 positions open</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">PROFIT FACTOR</div>
+      <div class="metric-value" id="m-profit-factor">—</div>
+      <div class="metric-delta" id="m-expectancy">expectancy —</div>
+    </div>
+    <div class="metric-card mode-card" id="mode-card">
+      <div class="metric-label">SYSTEM MODE</div>
+      <div class="metric-value" id="m-profit-mode">NORMAL</div>
+      <div class="metric-delta" id="m-daily-progress">0% of daily target</div>
+    </div>
+  </section>
+
+  <!-- ── CHART PANEL ───────────────────────────────────────────────────────── -->
+  <section class="panel chart-panel">
+    <div class="panel-header">
+      <span class="panel-title">📈 PRICE CHART</span>
+      <div class="chart-controls">
+        <select id="chart-ticker" class="ctrl-select">
+          <optgroup label="US Large-Cap">
+            <option value="AAPL">AAPL</option><option value="MSFT">MSFT</option>
+            <option value="NVDA">NVDA</option><option value="TSLA">TSLA</option>
+            <option value="AMZN">AMZN</option><option value="META">META</option>
+          </optgroup>
+          <optgroup label="ETFs">
+            <option value="SPY">SPY</option><option value="QQQ">QQQ</option>
+            <option value="IWM">IWM</option>
+          </optgroup>
+          <optgroup label="Crypto">
+            <option value="BTC-USD">BTC</option><option value="ETH-USD">ETH</option>
+          </optgroup>
+        </select>
+        <div class="tf-btns">
+          <button class="tf-btn active" data-tf="5m">5M</button>
+          <button class="tf-btn" data-tf="15m">15M</button>
+          <button class="tf-btn" data-tf="1h">1H</button>
+          <button class="tf-btn" data-tf="1d">1D</button>
+        </div>
+        <label class="toggle-label"><input type="checkbox" id="show-ema" checked> EMA</label>
+        <label class="toggle-label"><input type="checkbox" id="show-bb"> BB</label>
+        <label class="toggle-label"><input type="checkbox" id="show-signals"> Signals</label>
+      </div>
+    </div>
+    <div id="chart-container"></div>
+    <div id="rsi-container"></div>
+  </section>
+
+  <!-- ── OPPORTUNITIES PANEL ──────────────────────────────────────────────── -->
+  <section class="panel opps-panel">
+    <div class="panel-header">
+      <span class="panel-title">⚡ OPPORTUNITIES</span>
+      <div class="opp-header-right">
+        <span class="badge" id="opp-count">0 signals</span>
+        <button class="btn-icon small" id="btn-refresh-signals">↺ SCAN</button>
+      </div>
+    </div>
+    <div class="opp-list" id="opp-list">
+      <div class="empty-state">
+        <div class="es-icon">⚡</div>
+        <div>Scanning 50+ tickers across 4 timeframes…</div>
+        <div class="es-sub">Start trading to activate signal scanning</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── OPEN POSITIONS ────────────────────────────────────────────────────── -->
+  <section class="panel positions-panel">
+    <div class="panel-header">
+      <span class="panel-title">📊 OPEN POSITIONS</span>
+      <span class="badge" id="pos-count">0 / 8</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>TICKER</th><th>DIR</th><th>STRATEGY</th>
+          <th>ENTRY</th><th>SL</th><th>TP1</th>
+          <th>SIZE</th><th>PnL</th><th>SCORE</th><th>TIER</th><th>ACT</th>
+        </tr></thead>
+        <tbody id="positions-tbody">
+          <tr><td colspan="11" class="empty-row">No open positions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── EQUITY CURVE ──────────────────────────────────────────────────────── -->
+  <section class="panel perf-panel">
+    <div class="panel-header">
+      <span class="panel-title">📉 PERFORMANCE CHART</span>
+      <div class="tab-btns">
+        <button class="tab-btn active" data-tab="equity">Equity</button>
+        <button class="tab-btn" data-tab="drawdown">Drawdown</button>
+        <button class="tab-btn" data-tab="pnl">Daily PnL</button>
+      </div>
+    </div>
+    <canvas id="equity-chart"></canvas>
+  </section>
+
+  <!-- ── STRATEGY ALLOCATION ───────────────────────────────────────────────── -->
+  <section class="panel strategy-panel">
+    <div class="panel-header"><span class="panel-title">🎰 STRATEGY ALLOCATION</span></div>
+    <div class="strategy-grid">
+      <div class="strategy-card" id="sc-momentum">
+        <div class="sc-top">
+          <span class="sc-name">MOMENTUM</span>
+          <span class="sc-status on" id="sc-mom-status">ADX&gt;25</span>
+        </div>
+        <div class="sc-bar-wrap"><div class="sc-bar mom" id="sc-mom-bar" style="width:40%"></div></div>
+        <div class="sc-bottom">
+          <span class="sc-pct" id="sc-mom-pct">40%</span>
+          <span class="sc-sharpe" id="sc-mom-sharpe">Sharpe —</span>
+          <span class="sc-trades" id="sc-mom-trades">0 trades</span>
+        </div>
+      </div>
+      <div class="strategy-card" id="sc-meanrev">
+        <div class="sc-top">
+          <span class="sc-name">MEAN REVERSION</span>
+          <span class="sc-status standby" id="sc-mr-status">ADX&lt;20</span>
+        </div>
+        <div class="sc-bar-wrap"><div class="sc-bar mr" id="sc-mr-bar" style="width:30%"></div></div>
+        <div class="sc-bottom">
+          <span class="sc-pct" id="sc-mr-pct">30%</span>
+          <span class="sc-sharpe" id="sc-mr-sharpe">Sharpe —</span>
+          <span class="sc-trades" id="sc-mr-trades">0 trades</span>
+        </div>
+      </div>
+      <div class="strategy-card" id="sc-scalp">
+        <div class="sc-top">
+          <span class="sc-name">SCALP</span>
+          <span class="sc-status on" id="sc-sc-status">ALWAYS ON</span>
+        </div>
+        <div class="sc-bar-wrap"><div class="sc-bar sc" id="sc-sc-bar" style="width:30%"></div></div>
+        <div class="sc-bottom">
+          <span class="sc-pct" id="sc-sc-pct">30%</span>
+          <span class="sc-sharpe" id="sc-sc-sharpe">Sharpe —</span>
+          <span class="sc-trades" id="sc-sc-trades">0 trades</span>
+        </div>
+      </div>
+    </div>
+    <div class="at-row">
+      <span class="at-label">ADAPTIVE THRESHOLD</span>
+      <span class="at-val" id="at-val">0.75</span>
+      <div class="at-bar-wrap"><div class="at-bar" id="at-bar" style="width:75%"></div></div>
+    </div>
+    <div class="pl-row">
+      <span class="pl-label">DAILY PnL TARGET</span>
+      <div class="pl-bar-wrap">
+        <div class="pl-fill" id="pl-fill" style="width:0%"></div>
+        <div class="pl-mark protect" title="+0.5% Protect"></div>
+        <div class="pl-mark stretch" title="+1.0% Lock"></div>
+      </div>
+      <span class="pl-pct" id="pl-pct">0.0%</span>
+    </div>
+  </section>
+
+  <!-- ── MODEL HEALTH ──────────────────────────────────────────────────────── -->
+  <section class="panel model-panel">
+    <div class="panel-header"><span class="panel-title">🤖 MODEL HEALTH</span></div>
+    <div class="model-stats">
+      <div class="ms"><div class="ms-l">STATUS</div><div class="ms-v" id="model-status">UNTRAINED</div></div>
+      <div class="ms"><div class="ms-l">MODELS</div><div class="ms-v" id="model-count">—</div></div>
+      <div class="ms"><div class="ms-l">FEATURES</div><div class="ms-v" id="model-features">—</div></div>
+      <div class="ms"><div class="ms-l">LAST TRAIN</div><div class="ms-v" id="model-last-train">Never</div></div>
+    </div>
+    <div class="mh-metrics">
+      <div class="mhm" id="mhm-lgb"><span>LGB AUC</span><strong id="auc-lgb">—</strong></div>
+      <div class="mhm" id="mhm-xgb"><span>XGB AUC</span><strong id="auc-xgb">—</strong></div>
+      <div class="mhm" id="mhm-rf"><span>RF AUC</span><strong id="auc-rf">—</strong></div>
+    </div>
+    <div class="drift-section">
+      <div class="drift-title">DRIFT MONITOR</div>
+      <div class="drift-item"><span>Win Rate Drift</span><div class="d-bar"><div class="d-fill green" id="d-wr" style="width:80%"></div></div><span id="d-wr-val">OK</span></div>
+      <div class="drift-item"><span>Calibration</span><div class="d-bar"><div class="d-fill green" id="d-cal" style="width:75%"></div></div><span id="d-cal-val">OK</span></div>
+      <div class="drift-item"><span>Feature Drift</span><div class="d-bar"><div class="d-fill green" id="d-feat" style="width:90%"></div></div><span id="d-feat-val">OK</span></div>
+    </div>
+  
+  <!-- ── TRAINING LIVE PANEL ─────────────────────────────────────────────────── -->
+  <div id="training-live" class="hidden" style="
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:var(--r-sm);padding:10px;margin:0 var(--panel-pad) var(--panel-pad);
+    font-family:var(--mono);font-size:11px;
+  ">
+    <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">TRAINING IN PROGRESS</div>
+  </div>
+
+  </section>
+
+  <!-- ── RISK ALERTS ───────────────────────────────────────────────────────── -->
+  <section class="panel alerts-panel">
+    <div class="panel-header">
+      <span class="panel-title">🚨 RISK MONITOR</span>
+      <span class="badge danger hidden" id="alert-count">0</span>
+    </div>
+    <div class="risk-gauges">
+      <div class="rg-item">
+        <div class="rg-label">Daily Loss Limit</div>
+        <div class="rg-bar"><div class="rg-fill" id="rg-daily" style="width:0%"></div></div>
+        <span id="rg-daily-val">0% / 3%</span>
+      </div>
+      <div class="rg-item">
+        <div class="rg-label">Open Risk</div>
+        <div class="rg-bar"><div class="rg-fill warn" id="rg-risk" style="width:0%"></div></div>
+        <span id="rg-risk-val">0% / 2%</span>
+      </div>
+      <div class="rg-item">
+        <div class="rg-label">Max Drawdown</div>
+        <div class="rg-bar"><div class="rg-fill danger" id="rg-dd" style="width:0%"></div></div>
+        <span id="rg-dd-val">0% / 10%</span>
+      </div>
+      <div class="rg-item">
+        <div class="rg-label">Consecutive Losses</div>
+        <div class="rg-bar"><div class="rg-fill warn" id="rg-losses" style="width:0%"></div></div>
+        <span id="rg-losses-val">0 / 5</span>
+      </div>
+    </div>
+    <div class="alerts-list" id="alerts-list">
+      <div class="al-entry ok"><span class="al-dot"></span>All systems nominal</div>
+    </div>
+  </section>
+
+  <!-- ── TRADE EXPLANATION ─────────────────────────────────────────────────── -->
+  <section class="panel explain-panel">
+    <div class="panel-header">
+      <span class="panel-title">🧬 SIGNAL BREAKDOWN</span>
+      <span class="explain-ticker-badge" id="explain-ticker">SELECT A SIGNAL</span>
+    </div>
+    <div class="explain-grid" id="explain-grid">
+      <div class="empty-state">
+        <div class="es-icon">🧬</div>
+        <div>Click any opportunity to see score breakdown</div>
+      </div>
+    </div>
+    <div class="confidence-wrap">
+      <svg class="conf-gauge" viewBox="0 0 200 110">
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#ef4444"/>
+            <stop offset="50%" style="stop-color:#f59e0b"/>
+            <stop offset="100%" style="stop-color:#22c55e"/>
+          </linearGradient>
+        </defs>
+        <path d="M15 100 A85 85 0 0 1 185 100" stroke="var(--surface-2)" stroke-width="14" stroke-linecap="round" fill="none"/>
+        <path id="gauge-arc" d="M15 100 A85 85 0 0 1 185 100" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" fill="none"
+              stroke-dasharray="267" stroke-dashoffset="267"/>
+        <text id="gauge-pct" x="100" y="82" text-anchor="middle" font-size="26" font-family="Space Mono, monospace" fill="var(--text-primary)" font-weight="700">0%</text>
+        <text x="100" y="100" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="DM Sans, sans-serif">MODEL CONFIDENCE</text>
+      </svg>
+      <div class="ensemble-row" id="ensemble-row">
+        <span class="er-label">Ensemble Agreement</span>
+        <span class="er-val" id="ensemble-val">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AUDIT LOG ──────────────────────────────────────────────────────────── -->
+  <section class="panel audit-panel">
+    <div class="panel-header">
+      <span class="panel-title">📜 AUDIT LOG</span>
+      <div>
+        <button class="btn-icon small" id="btn-clear-log">CLR</button>
+        <button class="btn-icon small" id="btn-export-log">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="audit-log" id="audit-log">
+      <div class="al-item info">
+        <span class="al-ts" id="init-ts">--:--:--</span>
+        <span class="al-type sys">SYS</span>
+        <span class="al-msg">APEX AI Trading System v1.0 initialized</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PERFORMANCE STATS ──────────────────────────────────────────────────── -->
+  <section class="panel stats-panel">
+    <div class="panel-header"><span class="panel-title">📊 STATISTICS</span></div>
+    <div class="stats-grid">
+      <div class="sg-item"><div class="sg-l">Total Trades</div><div class="sg-v" id="sg-total">0</div></div>
+      <div class="sg-item"><div class="sg-l">Wins</div><div class="sg-v green" id="sg-wins">0</div></div>
+      <div class="sg-item"><div class="sg-l">Losses</div><div class="sg-v red" id="sg-losses">0</div></div>
+      <div class="sg-item"><div class="sg-l">Avg Win</div><div class="sg-v green" id="sg-avg-win">—</div></div>
+      <div class="sg-item"><div class="sg-l">Avg Loss</div><div class="sg-v red" id="sg-avg-loss">—</div></div>
+      <div class="sg-item"><div class="sg-l">Expectancy</div><div class="sg-v" id="sg-exp">—</div></div>
+      <div class="sg-item"><div class="sg-l">Sortino</div><div class="sg-v" id="sg-sortino">—</div></div>
+      <div class="sg-item"><div class="sg-l">Max DD</div><div class="sg-v red" id="sg-maxdd">0%</div></div>
+    </div>
+    <div class="streak-row">
+      <div class="streak-item">
+        <span class="st-emoji">🔥</span>
+        <span class="st-label">WIN STREAK</span>
+        <span class="st-val green" id="st-wins">0</span>
+      </div>
+      <div class="streak-item">
+        <span class="st-emoji">❄</span>
+        <span class="st-label">LOSS STREAK</span>
+        <span class="st-val red" id="st-losses">0</span>
+      </div>
+      <div class="streak-item">
+        <span class="st-emoji">📅</span>
+        <span class="st-label">TODAY PnL</span>
+        <span class="st-val" id="st-today">$0</span>
+      </div>
+    </div>
+    <div class="data-controls">
+      <div class="dc-row">
+        <span class="dc-label">Risk Per Trade</span>
+        <span class="dc-val" id="dc-rpt">0.25%</span>
+        <input class="dc-slider" type="range" min="10" max="100" value="25" id="sl-rpt">
+      </div>
+      <div class="dc-row">
+        <span class="dc-label">Min Signal Score</span>
+        <span class="dc-val" id="dc-score">0.70</span>
+        <input class="dc-slider" type="range" min="50" max="95" value="70" id="sl-score">
+      </div>
+      <div class="dc-row">
+        <span class="dc-label">Max Positions</span>
+        <span class="dc-val" id="dc-maxpos">8</span>
+        <input class="dc-slider" type="range" min="1" max="15" value="8" id="sl-maxpos">
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RECENT TRADES ──────────────────────────────────────────────────────── -->
+  <section class="panel trades-panel">
+    <div class="panel-header">
+      <span class="panel-title">🕐 RECENT TRADES</span>
+      <button class="btn-icon small" id="btn-export-trades">⬇ EXPORT</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table small">
+        <thead><tr>
+          <th>TIME</th><th>TICKER</th><th>DIR</th><th>STRATEGY</th>
+          <th>ENTRY</th><th>EXIT</th><th>PnL</th><th>REASON</th>
+        </tr></thead>
+        <tbody id="trades-tbody">
+          <tr><td colspan="8" class="empty-row">No completed trades</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="js/ws.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
