@@ -1,0 +1,51 @@
+You are a senior quantitative trading researcher and ML engineer.
+
+I have developed an algorithmic trading strategy that shows strong backtest results (high Sharpe ratio, low drawdown, high win rate). However, I want to rigorously test its robustness and identify potential weaknesses.
+
+Your task is to critically evaluate and improve my backtesting pipeline by applying realistic constraints and validation techniques.
+
+Please perform the following:
+
+1. TRANSACTION COST MODELING  
+- Incorporate realistic trading costs including brokerage fees, slippage, and bid-ask spread.  
+- Simulate different cost scenarios (low, medium, high liquidity conditions).  
+- Recalculate all performance metrics after costs.
+
+2. WALK-FORWARD VALIDATION  
+- Replace the static train/test split with walk-forward analysis.  
+- Use rolling or expanding windows.  
+- Train the model on past data and evaluate on the next unseen segment iteratively.  
+- Report performance consistency across all windows.
+
+3. STRESS TESTING  
+- Evaluate the strategy under different market regimes:
+  - High volatility periods  
+  - Low volatility periods  
+  - Trending vs sideways markets  
+- Simulate worst-case scenarios (sudden crashes, gaps, liquidity shocks).  
+- Analyze how drawdown and returns behave under stress.
+
+4. OVERFITTING REDUCTION  
+- Check if the strategy is over-optimized.  
+- Reduce model complexity and number of parameters.  
+- Perform sensitivity analysis on key parameters.  
+- Validate whether small parameter changes significantly affect performance.
+
+5. ROBUSTNESS METRICS  
+- Recompute Sharpe ratio, Sortino ratio, max drawdown, and profit factor under all conditions.  
+- Compare original vs realistic results.  
+- Highlight any significant degradation.
+
+6. CRITICAL ANALYSIS  
+- Identify unrealistic assumptions in the original backtest.  
+- Clearly explain why metrics like very high Sharpe ratio or extremely low drawdown may not be reliable.  
+- Provide an honest assessment of whether this strategy is likely to work in live trading.
+
+7. OUTPUT FORMAT  
+- Provide a structured report with:
+  - Updated metrics  
+  - Key weaknesses  
+  - Risk factors  
+  - Recommendations for improvement  
+
+Be extremely critical and realistic. Do not assume ideal conditions.
